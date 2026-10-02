@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Vela / AIoT-IDE 打包产物
+*.rpk
+demo/build/
+demo/dist/
+demo/node_modules/
+demo/.AIoT*/
+
+# 重新生成贴图时的临时对照档位（保留 band / band-lite / band-pro）
+output/ref-*/
+output/custom/
+
+# 日志
+*.log

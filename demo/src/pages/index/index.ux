@@ -1,0 +1,152 @@
+<template>
+  <div class="page">
+    <div class="hud">
+      <text class="hud-text">{{status}}</text>
+    </div>
+    <div class="dungeon">
+      <div for="{{t in tileList}}" class="t" style="{{t.style}}"></div>
+    </div>
+    <div class="foot">
+      <text class="foot-text">{{hint}}</text>
+    </div>
+  </div>
+</template>
+
+<style>
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #050608;
+  align-items: center;
+}
+.hud {
+  width: 192px;
+  height: 22px;
+  padding: 4px 8px;
+  background-color: #11141b;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.hud-text {
+  color: #d2d6df;
+  font-size: 12px;
+}
+.dungeon {
+  width: 192px;
+  height: 442px;
+  position: relative;
+}
+.t {
+  position: absolute;
+}
+/* 手环是物理像素, 不能插值*/
+.t {
+  background-color: transparent;
+}
+.foot {
+  width: 192px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4px;
+}
+.foot-text {
+  color: #6c7079;
+  font-size: 11px;
+}
+</style>
+
+<script>
+import { SHEETS, TILE } from '../../common/sprites.js'
+import tiles0Url from '../../common/tiles0.png'
+import warriorUrl from '../../common/warrior.png'
+
+// 14 列 x 14 行的小地牢, 12px tile = 168x168 px, 居中放在 192x490 屏幕里
+const MAP = [
+  "##############",
+  "#............#",
+  "#............#",
+  "#....@......$#",
+  "#..........!.#",
+  "#....~~......#",
+  "#............#",
+  "#............#",
+  "#####......###",
+  "#............#",
+  "#...........&#",
+  "#............#",
+  "#............#",
+  "##############"
+]
+
+// tiles0 在原 16x16 网格 (从 watabou/pixel-dungeon 源码整理, 部分为常用推断):
+//   0  = 普通地板
+//   1  = 水
+//   4  = 单墙 (用近似 wall, 实际墙体在 8..11/16..22)
+//   12 = 告示牌
+//   80 = 向下楼梯
+const CHAR2TILE = {
+  "#": 4,
+  ".": 0,
+  "~": 1,
+  "!": 12,
+  "$": 80,
+  "&": 0
+}
+
+export default {
+  data: {
+    status: 'DEPTH 1   HP 12/12   ✦340',
+    hint: 'Pixel Dungeon · band 12px/48色',
+    tileList: []
+  },
+  onInit() {
+    this.buildMap()
+  },
+  buildMap() {
+    const tw = TILE
+    const s = SHEETS.tiles0
+    const ws = SHEETS.warrior
+    const rows = MAP.length
+    const cols = MAP[0].length
+    const ox = Math.floor((192 - cols * tw) / 2)   // 12px 居中
+    const oy = 30                                  // HUD 之下
+    const list = []
+    for (let r = 0; r < rows; r++) {
+      const row = MAP[r]
+      for (let c = 0; c < cols; c++) {
+        const ch = row[c]
+        if (ch === ' ') continue
+
+        if (ch === '@') {
+          // 玩家: 用 warrior 第一帧 (idle 站立)
+          const p = (ws.c && ws.c[0]) ? ws.c[0] : [0, 0]
+          list.push({
+            style:
+              `left:${ox + c * tw}px;top:${oy + r * tw}px;`
+              + `width:${tw}px;height:${tw}px;`
+              + `background-image:url('${warriorUrl}');`
+              + `background-position:-${p[0]}px -${p[1]}px;`
+              + `background-size:${ws.iw}px ${ws.ih}px;background-repeat:no-repeat;`
+          })
+          continue
+        }
+
+        const idx = CHAR2TILE[ch]
+        if (idx === undefined) continue
+        const p = (s.c && s.c[idx]) ? s.c[idx] : null
+        if (!p) continue
+        list.push({
+          style:
+            `left:${ox + c * tw}px;top:${oy + r * tw}px;`
+            + `width:${tw}px;height:${tw}px;`
+            + `background-image:url('${tiles0Url}');`
+            + `background-position:-${p[0]}px -${p[1]}px;`
+            + `background-size:${s.iw}px ${s.ih}px;background-repeat:no-repeat;`
+        })
+      }
+    }
+    this.tileList = list
+  }
+}
+</script>

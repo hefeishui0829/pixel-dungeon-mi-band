@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Pixel Dungeon → 小米手环快应用贴图预览</title>
+<style>
+  :root {
+    --bg: #0f1115; --bg2: #1a1d24; --bg3: #252932;
+    --fg: #e6e9ef; --fg2: #9aa0aa; --acc: #ff7a45;
+    --screen-bg: #000; --screen-fg: #a5a8b0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--fg);
+         font: 14px/1.55 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 24px; margin-bottom: 20px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  h1 small { font-size: 13px; color: var(--fg2); margin-left: 8px; font-weight: 400; }
+  h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--fg2);
+       text-transform: uppercase; letter-spacing: 0.5px; }
+  .controls { display: flex; gap: 8px; margin-left: auto; }
+  .controls button { padding: 8px 14px; background: var(--bg3); color: var(--fg);
+                     border: 1px solid #3a3f4a; border-radius: 6px; cursor: pointer; font: inherit; }
+  .controls button.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .controls button:hover:not(.on) { background: #2e3340; }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* 手环模拟屏 */
+  .device { background: var(--bg2); border: 1px solid #2a2d34; border-radius: 12px;
+            padding: 20px; }
+  .device h3 { font-size: 13px; color: var(--fg2); margin: 0 0 14px;
+                text-transform: uppercase; letter-spacing: 0.5px; }
+  .band-frame { width: 192px; height: 490px; background: #111; border-radius: 24px;
+                padding: 14px 12px; position: relative; margin: 0 auto;
+                box-shadow: 0 0 0 2px #2a2d34, 0 10px 30px rgba(0,0,0,0.6); }
+  .band-frame::before { content: "10:08"; position: absolute; top: 8px; right: 16px;
+                        font: 10px monospace; color: #444; }
+  .screen { width: 192px; height: 490px; background: #050608; position: relative;
+            overflow: hidden; image-rendering: pixelated; image-rendering: crisp-edges;
+            border-radius: 16px; }
+  .screen .tile { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .screen .tile.floor { background: #1c1f26; }
+
+  .legend { margin-top: 16px; font-size: 12px; color: var(--fg2); line-height: 1.7; }
+  .legend kbd { background: var(--bg3); border: 1px solid #3a3f4a; border-radius: 3px;
+                padding: 1px 5px; font-family: monospace; }
+
+  /* Sprite sheets 列表 */
+  .sheets { background: var(--bg2); border: 1px solid #2a2d34; border-radius: 12px;
+            padding: 20px; }
+  .sheets .meta { display: flex; justify-content: space-between; align-items: center;
+                  margin-bottom: 16px; }
+  .sheets .meta .stats { font-size: 12px; color: var(--fg2); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .sheet { background: var(--bg); border: 1px solid #2a2d34; border-radius: 8px;
+           padding: 10px; }
+  .sheet .label { display: flex; justify-content: space-between; font-size: 12px;
+                  margin-bottom: 6px; }
+  .sheet .label b { color: var(--fg); font-family: ui-monospace, monospace; font-weight: 500; }
+  .sheet .label span { color: var(--fg2); font-family: ui-monospace, monospace; }
+  .sheet .preview { background: #0a0b0e; border-radius: 4px; padding: 6px; overflow: hidden;
+                    image-rendering: pixelated; image-rendering: crisp-edges;
+                    min-height: 50px; position: relative; }
+  .sheet .preview img { display: block; image-rendering: pixelated; transform-origin: 0 0; }
+  .sheet .size-note { font-size: 11px; color: var(--fg2); margin-top: 6px;
+                      font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pixel Dungeon → 小米手环 Vela JS 快应用 贴图预览
+    <small>GPL-3.0 · 来源 watabou/pixel-dungeon v1.9.1</small></h1>
+  <div class="controls" id="ctrl">
+    <button data-preset="band" class="on">band (12px / 48色)</button>
+    <button data-preset="band-lite">band-lite (8px / 24色)</button>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="device">
+    <h3>手环 9 模拟屏 · 192 × 490</h3>
+    <div class="band-frame">
+      <div class="screen" id="screen"></div>
+    </div>
+    <div class="legend">
+      16 列 × 28 行的地牢场景渲染示意。每格 12px tile, 缩到 192 宽屏上刚好铺满。
+      实际精灵原图是 16×16, 12px 是 box 面积平均缩放 + 调色板量化后的版本。
+    </div>
+  </section>
+
+  <section class="sheets">
+    <div class="meta">
+      <h2 id="preset-title">预设: band</h2>
+      <div class="stats" id="preset-stats"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+</div>
+
+<script>
+const PRESET_BASE = "output/";
+const SCREEN_W = 192, SCREEN_H = 490;
+let cur = { preset: "band", data: null };
+
+// 地图: 每行一个字符串, #=墙, .=地板, ~=水, $=楼梯(下), !=告示牌, @=玩家, &=NPC
+const MAP = [
+  "#################",
+  "#......$........#",
+  "#.....###.......#",
+  "#........~......#",
+  "#...!....~~~....#",
+  "#...............#",
+  "#....@..........#",
+  "#...............#",
+  "#####......######",
+  "#...............#",
+  "#...........&...#",
+  "#...............#",
+  "#...............#",
+  "#.....###.......#",
+  "#################",
+];
+// Tiles0 原 16x16 网格 (从源代码整理, 部分为推断):
+//   0 = 地板, 1 = 水, 2/3 = 高草, 4..11 = 四向墙 + 四角, 12 = 告示牌, 16..22 = 各种门
+//   32..37 = 楼梯 (down/up 不同方向), S.js = 楼梯 tile, 80+ = 楼梯
+const CHAR2TILE = {
+  "#": [4],          // 上墙 (近似)
+  ".": [0],          // 地板
+  "~": [1],          // 水
+  "!": [12],         // 告示牌
+  "$": [80],         // 楼梯 (向下)
+  "&": [0],          // 简易 NPC, 用地板
+  "@": null,         // 玩家, 单独处理
+};
+
+function setLoading(on) {
+  document.body.style.opacity = on ? "0.5" : "1";
+}
+
+async function loadPreset(name) {
+  setLoading(true);
+  const resp = await fetch(PRESET_BASE + name + "/sprites.json");
+  const data = await resp.json();
+  cur = { preset: name, data };
+  document.getElementById("preset-title").textContent = "预设: " + name;
+  const r = (await fetch(PRESET_BASE + name + "/report.json")).json ? (await fetch(PRESET_BASE + name + "/report.json")).json() : {};
+  try {
+    const rep = await (await fetch(PRESET_BASE + name + "/report.json")).json();
+    document.getElementById("preset-stats").innerHTML =
+      `tile ${rep.tile}px; 调色板 ${rep.colors} 色; 贴图 ${rep.outputTotalKB} KB / 源 ${rep.sourceTotalKB} KB; 压缩 ${rep.compression}x`;
+  } catch (e) { /* ignore */ }
+  document.querySelectorAll(".controls button").forEach(b =>
+    b.classList.toggle("on", b.dataset.preset === name));
+  renderScreen();
+  renderSheets();
+  setLoading(false);
+}
+
+function tile(sheet, index) {
+  const s = cur.data.sheets[sheet];
+  if (!s) return null;
+  const c = s.coords[index];
+  if (!c) return null;
+  return { bg: `url(${PRESET_BASE + cur.preset + "/" + s.image})`,
+           bgPos: `${-c[0]}px ${-c[1]}px`,
+           bgSize: `${s.imageWidth}px ${s.imageHeight}px`,
+           w: s.tileWidth, h: s.tileHeight };
+}
+
+function renderScreen() {
+  const screen = document.getElementById("screen");
+  screen.innerHTML = "";
+  const tw = cur.data.targetTileSize;
+  const cols = Math.floor(SCREEN_W / tw);
+  const rows = Math.floor(SCREEN_H / tw);
+  // 地图背景用纯色, 上层画 tiles0
+  screen.style.background = "#050608";
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const ch = (MAP[r] || "")[c] || " ";
+      if (ch === " ") continue;
+      let idx = CHAR2TILE[ch] ? CHAR2TILE[ch][0] : null;
+      if (idx === null && ch !== "@") continue;
+      if (ch === "@") { drawChar(screen, "warrior", 0, c * tw, r * tw, tw * 2); continue; }
+      if (ch === "&") { drawChar(screen, "shopkeeper", 0, c * tw, r * tw, tw); continue; }
+      const t = tile("tiles0", idx);
+      if (!t) continue;
+      const d = document.createElement("div");
+      d.className = "tile";
+      d.style.cssText = `left:${c*tw}px;top:${r*tw}px;width:${tw}px;height:${tw}px;`
+        + `background-image:${t.bg};background-position:${t.bgPos};`
+        + `background-size:${t.bgSize};background-repeat:no-repeat;`;
+      screen.appendChild(d);
+    }
+  }
+  // 加一个 HUD 元素证明 image 组件可用
+  const hud = document.createElement("div");
+  hud.style.cssText = "position:absolute;left:6px;top:8px;font:10px monospace;color:#a5a8b0;letter-spacing:0.5px;";
+  hud.textContent = "DEPTH 1  HP 12/12  ✦340";
+  screen.appendChild(hud);
+}
+
+function drawChar(screen, sheet, index, x, y, size) {
+  const t = tile(sheet, index);
+  if (!t) return;
+  const d = document.createElement("div");
+  d.className = "tile";
+  d.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size}px;`
+    + `background-image:${t.bg};background-position:${t.bgPos};`
+    + `background-size:${t.bgSize};background-repeat:no-repeat;`;
+  screen.appendChild(d);
+}
+
+function renderSheets() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  const entries = Object.entries(cur.data.sheets)
+    .filter(([, s]) => s.image)
+    .sort((a, b) => b[1].packedCount - a[1].packedCount);
+  for (const [name, s] of entries) {
+    const card = document.createElement("div");
+    card.className = "sheet";
+    card.innerHTML = `<div class="label"><b>${name}</b><span>${s.tileCount}t</span></div>
+      <div class="preview"><img src="${PRESET_BASE + cur.preset + "/" + s.image}"></div>
+      <div class="size-note">${s.imageWidth}×${s.imageHeight}px · tile ${s.tileWidth}×${s.tileHeight}</div>`;
+    const img = card.querySelector("img");
+    img.addEventListener("load", () => {
+      const maxW = 200;
+      const k = Math.min(maxW / img.naturalWidth, 8);
+      img.style.width = (img.naturalWidth * k) + "px";
+      img.style.height = (img.naturalHeight * k) + "px";
+    });
+    grid.appendChild(card);
+  }
+}
+
+document.querySelectorAll(".controls button").forEach(b =>
+  b.addEventListener("click", () => loadPreset(b.dataset.preset)));
+
+loadPreset("band");
+</script>
+
+</body>
+</html>

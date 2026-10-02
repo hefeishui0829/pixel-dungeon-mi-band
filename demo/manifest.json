@@ -1,0 +1,34 @@
+{
+  "package": "com.demo.pixeldungeon",
+  "name": "PixelDungeon",
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "icon": "/src/img/icon.png",
+  "minPlatformVersion": 10501,
+  "targetPlatformVersion": 10501,
+  "config": {
+    "logLevel": "log",
+    "designWidth": 192
+  },
+  "display": {
+    "titleBar": false,
+    "fullScreen": true,
+    "backgroundColor": "#050608"
+  },
+  "router": {
+    "entry": "Index",
+    "pages": {
+      "Index": {
+        "component": "index",
+        "path": "/src/pages/index"
+      }
+    }
+  },
+  "features": [
+    { "name": "system.device" }
+  ],
+  "i18n": {
+    "en-US": "/src/i18n/en-US.json",
+    "zh-CN": "/src/i18n/zh-CN.json"
+  }
+}
