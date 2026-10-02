@@ -70,7 +70,13 @@ python3 tools/convert_sprites.py            # 生成 band + band-lite 两档
 
 ### 效果对比
 
-> 每张图 **上排为原始 16px，下排为 `band` 档 12px**（等比放大便于肉眼比较；在手环上实际就是 12 物理像素）。
+> 每张图 **每档 tile 都放大到相同显示尺寸（48px/格，整数倍）**，方便横向比较画质损失。在手环上时每档按各自 tile 尺寸渲染。
+
+**`tiles0` 地牢瓦片 + `warrior` 战士动画帧（4 档同图对比）**
+
+![四档横向对比](docs/cmp_all_presets.png)
+
+单张图（原图 vs `band` 档 12px）：
 
 **地牢瓦片 `tiles0`**（放大 6×）
 
@@ -98,17 +104,18 @@ pixel-dungeon-band/
 │   └── LICENSE-GPLv3.txt     ← 上游许可副本
 ├── tools/
 │   └── convert_sprites.py    ← 转换管线 (Python + Pillow + numpy)
-├── output/                   ← 转换产出, 每档一个目录 (已入库, 开箱即用)
-│   ├── band/                 ★ 推荐档 12px
+├── output/                   ← 转换产出, 每档一个独立目录 (已入库, 开箱即用)
+│   ├── band/                 ★ 推荐档 12px  (82 PNG + 4 manifest + README)
+│   │   ├── README.md         ← 该档详细说明 (参数/适用/用法)
 │   │   ├── tiles0.png        ← PNG-8 索引色 + tRNS (透明)
 │   │   ├── warrior.png
 │   │   ├── ... (共 82 张)
 │   │   ├── sprites.json      ← 总 manifest (37 KB)
 │   │   ├── sprites.js        ← JS 模块, 直接 import
 │   │   ├── palette.json
-│   │   └── report.json
-│   ├── band-lite/            8px 极限档
-│   └── band-pro/             16px 原分辨率档
+│   │   └── report.json       ← 该档统计
+│   ├── band-lite/            8px 极限档   (含 README.md)
+│   └── band-pro/             16px 原分辨率档 (含 README.md)
 ├── demo/                     ← Vela JS 快应用 demo 工程
 │   ├── manifest.json         ← designWidth: 192 (手环 9)
 │   ├── src/
