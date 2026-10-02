@@ -90,6 +90,26 @@ PRESETS = {
     "band-pro": {"tile": 16, "colors": 64},
 }
 
+# 颜色配额倍率 (相对档位基准色数)
+# 这些图集色调分散 (每个 buff/徽章一种独立色相), median-cut 在均分色数下误差明显偏高:
+#   buffs 误差 38 / large_buffs 36 / badges 29 —— 而 tiles0 虽有 1018 色但集中在灰棕渐变, 48 色就够
+# 用倍率而非绝对值, 这样 band-lite 档也按比例提升, 不改变档位间的相对定位
+COLOR_BONUS = {
+    "buffs": 2.5,
+    "large_buffs": 2.5,
+    "badges": 2.0,
+    "items": 1.5,
+    "amulet": 1.5,
+    "ghost": 1.5,
+    "icons": 1.3,
+    "spell_icons": 1.3,
+}
+
+
+def colors_for(name: str, base: int) -> int:
+    """图集实际可用的调色板色数 (上限 255, PNG-8 索引上限)"""
+    return min(255, max(1, int(round(base * COLOR_BONUS.get(name, 1.0)))))
+
 RESAMPLES = {
     "box": Image.BOX,
     "nearest": Image.NEAREST,
@@ -340,6 +360,7 @@ def run_preset(src_dir, out_dir, preset, tile, colors, resample, alpha_threshold
     }
 
     stat_rows = []
+    sheet_pals = {}          # 每个精灵表自己的调色板, 供 palette.json 分组导出
     for name, s in sheets.items():
         tw, th = s["tileSize"]
         canvas, placements, n_uniq, n_drop = pack_sheet(
@@ -369,7 +390,9 @@ def run_preset(src_dir, out_dir, preset, tile, colors, resample, alpha_threshold
             continue
 
         # 调色板: global 模式全库共享, sheet 模式每个精灵表独立(避免被 banners 暖色吃掉)
-        pal = global_pal if palette_scope == "global" else build_palette(s["tiles"], colors)
+        pal = global_pal if palette_scope == "global" \
+            else build_palette(s["tiles"], colors_for(name, colors))
+        sheet_pals[name] = pal
 
         if png_mode in ("indexed", "both"):
             out_png = os.path.join(out_dir, f"{name}.png")
@@ -429,8 +452,16 @@ def run_preset(src_dir, out_dir, preset, tile, colors, resample, alpha_threshold
             f.write("\n".join(js) + "\n")
 
     # 调色板单独导出, 便于做主题换色
+    # sheet 模式按精灵表分组导出; 之前只写了最后一张图的 pal, 导致 palette.json 不完整
+    def hexes(p):
+        return ["#%02x%02x%02x" % tuple(int(v) for v in c) for c in p]
+
+    if palette_scope == "global":
+        payload = {"scope": "global", "colors": hexes(global_pal)}
+    else:
+        payload = {"scope": "sheet", "colors": {k: hexes(v) for k, v in sheet_pals.items()}}
     with open(os.path.join(out_dir, "palette.json"), "w", encoding="utf-8") as f:
-        json.dump({"colors": ["#%02x%02x%02x" % tuple(c) for c in pal]}, f, indent=0)
+        json.dump(payload, f, ensure_ascii=False, indent=0)
 
     return stat_rows
 

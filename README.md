@@ -4,7 +4,7 @@
 
 > 在小米手环上跑像素地牢的"低精度贴图"全流程:像素源 → 自动批量降精度 → 紧凑图集 → 可直接在 Vela JS 快应用里 import 的 PNG + JS manifest。
 
-**一句话**: 把 watabou/pixel-dungeon 的 82 张 16px 精灵表（465 KB / RGBA32 / 7042 色）批量转成手环能吃得下的 PNG-8 图集——推荐档 12px tile，**83 KB、压缩 5.6×、显存占用降 2.3×**。
+**一句话**: 把 watabou/pixel-dungeon 的 82 张 16px 精灵表（465 KB / RGBA32 / 7042 色）批量转成手环能吃得下的 PNG-8 图集——推荐档 12px tile，**84 KB、压缩 5.5×、显存占用降 2.3×**。
 
 ### 30 秒速览
 
@@ -45,9 +45,9 @@ python3 tools/convert_sprites.py            # 生成 band + band-lite 两档
 
 | 档位 | tile 尺寸 | 调色板 | 磁盘总体积 | 压缩比 | 解码后 RGBA 显存 | 适用 |
 |---|---|---|---|---|---|---|
-| `band-lite` | 8px (原 1/2) | 24 色 / sheet | **45.6 KB** | **10.2×** | 545 KB (5.1×) | 手环 9 视野 24×61, 极限省体积 |
-| **`band`** ★ | 12px (原 3/4) | 48 色 / sheet | **83.0 KB** | **5.6×** | 1200 KB (2.3×) | 手环 9 视野 16×40, 推荐档 |
-| `band-pro` | 16px (原 1/1) | 64 色 / sheet | **96.3 KB** | **4.8×** | 2037 KB (1.4×) | 手环 8/9 Pro (336 宽) |
+| `band-lite` | 8px (原 1/2) | 24 色 / sheet | **46.4 KB** | **10.0×** | 545 KB (5.1×) | 手环 9 视野 24×61, 极限省体积 |
+| **`band`** ★ | 12px (原 3/4) | 48 色 / sheet | **84.4 KB** | **5.5×** | 1200 KB (2.3×) | 手环 9 视野 16×40, 推荐档 |
+| `band-pro` | 16px (原 1/1) | 64 色 / sheet | **97.6 KB** | **4.8×** | 2037 KB (1.4×) | 手环 8/9 Pro (336 宽) |
 | (源素材) | 16px | RGBA32 (7042 色) | **465.4 KB** | — | 2770 KB | — |
 
 **体积从哪省下来的**（对照实验：16px + 255 色，只做重打包/去重/空剔除，不降分辨率不减色 → 109.5 KB）：
@@ -56,10 +56,10 @@ python3 tools/convert_sprites.py            # 生成 band + band-lite 两档
 465 KB  源素材
   ↓ -76%   ← 空 tile 剔除 + 内容帧去重 + 紧凑重打包 + PNG-8 索引化（这一项就占大头）
 109 KB
-  ↓ -12%   ← 调色板 255 → 64 色
- 96 KB   = band-pro
+  ↓ -11%   ← 调色板 255 → 64 色
+ 98 KB   = band-pro
   ↓ -14%   ← tile 16px → 12px（面积 -44%）
- 83 KB   = band
+ 84 KB   = band
   ↓ -45%   ← tile 12px → 8px（面积 -55%）
  46 KB   = band-lite
 ```
@@ -101,9 +101,11 @@ pixel-dungeon-band/
 ├── .gitignore
 ├── src-assets/
 │   ├── orig/                 ← 原始像素地牢 82 张 PNG (664 KB)
+│   ├── orig-app-icon/        ← 应用启动图标 ic_launcher 192x192 (来自 res/drawable-xxxhdpi/)
 │   └── LICENSE-GPLv3.txt     ← 上游许可副本
 ├── tools/
-│   └── convert_sprites.py    ← 转换管线 (Python + Pillow + numpy)
+│   ├── convert_sprites.py    ← 精灵表转换管线 (Python + Pillow + numpy)
+│   └── convert_app_icon.py   ← 应用启动图标转换 (单张整图, 不做切片)
 ├── output/                   ← 转换产出, 每档一个独立目录 (已入库, 开箱即用)
 │   ├── band/                 ★ 推荐档 12px  (82 PNG + 4 manifest + README)
 │   │   ├── README.md         ← 该档详细说明 (参数/适用/用法)
@@ -115,21 +117,71 @@ pixel-dungeon-band/
 │   │   ├── palette.json
 │   │   └── report.json       ← 该档统计
 │   ├── band-lite/            8px 极限档   (含 README.md)
-│   └── band-pro/             16px 原分辨率档 (含 README.md)
+│   ├── band-pro/             16px 原分辨率档 (含 README.md)
+│   └── app-icon/             应用启动图标 (icon.png 108px / icon@192.png)
 ├── demo/                     ← Vela JS 快应用 demo 工程
 │   ├── manifest.json         ← designWidth: 192 (手环 9)
 │   ├── src/
 │   │   ├── app.ux
 │   │   ├── i18n/{zh-CN,en-US}.json
 │   │   ├── pages/index/index.ux   ← 主页: 14x14 地牢地图
+│   │   ├── img/icon.png           ← 应用图标 (由 tools/convert_app_icon.py 生成)
 │   │   └── common/                ← 由 tools/prepare_demo.sh 填 (已预填 band 档)
 │   └── tools/prepare_demo.sh
 ├── docs/
+│   ├── cmp_all_presets.png   ← 四档同图横向对比 (原图/pro/band/lite)
 │   ├── cmp_tiles.png         ← 原图 vs band 档: 地牢瓦片
 │   ├── cmp_warrior.png       ← 原图 vs band 档: 战士动画帧
 │   └── cmp_items.png         ← 原图 vs band 档: 道具
 └── preview.html              ← 浏览器预览页 (无需打包)
 ```
+
+---
+
+## 3.5 素材完整性核对
+
+上游仓库 `watabou/pixel-dungeon` 的美术资产分布在两处，都已收录并转换：
+
+| 上游位置 | 资产 | 状态 |
+|---|---|---|
+| `assets/*.png` | 82 张游戏内精灵表 | ✅ 已收录 `src-assets/orig/`，三档各输出 82 张，逐一比对**零缺失** |
+| `res/drawable-*/ic_launcher.png` | 5 个 DPI 版本的应用启动图标（48/72/96/144/192） | ✅ 取 192 原图收录 `src-assets/orig-app-icon/`，已转 `output/app-icon/` |
+| `assets/*.mp3` | 音效 | ❌ 非美术资产，不在本仓库范围 |
+
+核对结果（脚本可复跑）：
+
+```
+源素材 82 张
+  [band      ] 输出 82 张 | 缺失 0 | 多余 0   ✓
+  [band-lite ] 输出 82 张 | 缺失 0 | 多余 0   ✓
+  [band-pro  ] 输出 82 张 | 缺失 0 | 多余 0   ✓
+三档中被整张判空丢弃的图集: 0
+```
+
+**空 tile 是正常现象，不是丢素材**。原图集留白很多（`surface` 128 格中 87 格空、`eye` 32 格中 20 格空），这些在 `coords` 里标 `null`、`tile()` 返回 `null`，渲染时跳过即可。
+
+### 量化保真度（全库实测）
+
+用每个图集自己的调色板还原源图不透明像素，算平均 RGB 欧氏距离（0 = 无损）：
+
+| 档位 | 平均误差 | 最差图集 |
+|---|---|---|
+| `band-pro` 64 色 | **2.19** | items 20.6 |
+| `band` 48 色 | **7.53** | ranger 25.2 |
+| `band-lite` 24 色 | **16.45** | ghost 49.9 |
+
+`buffs` / `large_buffs` / `badges` 这类图集色调高度分散（每个 buff 一种独立色相），均分色数时误差会飙到 30~55。管线里的 `COLOR_BONUS` 表给它们 1.5~2.5 倍颜色配额，误差降下来的代价只有 **+1.4 KB**。
+
+### 应用启动图标
+
+```bash
+python3 tools/convert_app_icon.py
+# → output/app-icon/icon.png     108x108  64 色  1.4 KB (7.0x)
+# → output/app-icon/icon@192.png 192x192  64 色  2.3 KB (4.2x)
+# → 同时拷到 demo/src/img/icon.png (manifest.json 的 icon 字段指向它)
+```
+
+> 手环快应用 `manifest.json` 的 `icon` 不强制固定尺寸，系统会自动缩放。108 版省体积，192 版保真，按需二选一。
 
 ---
 
@@ -143,6 +195,9 @@ python3 tools/convert_sprites.py
 
 # 只要 band-pro 档
 python3 tools/convert_sprites.py --preset band-pro
+
+# 一次生成全部三档 (推荐, 与仓库内 output/ 保持一致)
+python3 tools/convert_sprites.py --preset band,band-lite,band-pro
 
 # 自定义 (10px tile, 32 色全局调色板)
 python3 tools/convert_sprites.py --preset custom --tile 10 --colors 32
