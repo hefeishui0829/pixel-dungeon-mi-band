@@ -1,5 +1,7 @@
 # Pixel Dungeon → 小米手环 Vela JS 快应用 贴图资源包
 
+![License](https://img.shields.io/badge/License-GPLv3-blue.svg) ![Platform](https://img.shields.io/badge/platform-%E5%B0%8F%E7%B1%B3%E6%89%8B%E7%8E%AF%20Vela-orange) ![Size](https://img.shields.io/badge/%E8%B4%B4%E5%9B%BE-83%20KB%20(5.6%C3%97)-brightgreen)
+
 > 在小米手环上跑像素地牢的"低精度贴图"全流程:像素源 → 自动批量降精度 → 紧凑图集 → 可直接在 Vela JS 快应用里 import 的 PNG + JS manifest。
 
 **一句话**: 把 watabou/pixel-dungeon 的 82 张 16px 精灵表（465 KB / RGBA32 / 7042 色）批量转成手环能吃得下的 PNG-8 图集——推荐档 12px tile，**83 KB、压缩 5.6×、显存占用降 2.3×**。
@@ -65,6 +67,22 @@ python3 tools/convert_sprites.py            # 生成 band + band-lite 两档
 也就是说 **76% 的收益来自无损重打包**（原图集有大量全透明 tile 和重复动画帧），降分辨率 + 减色只是锦上添花。
 
 ★ `band` 12px 是默认推荐档: 192 物理像素屏上恰好 16 列 tile, 视野与原版 roguelike 接近, 同时把单张图集压在 2-3 KB 量级。
+
+### 效果对比
+
+> 每张图 **上排为原始 16px，下排为 `band` 档 12px**（等比放大便于肉眼比较；在手环上实际就是 12 物理像素）。
+
+**地牢瓦片 `tiles0`**（放大 6×）
+
+![tiles0 对比](docs/cmp_tiles.png)
+
+**战士动画帧 `warrior`**（放大 4×）
+
+![warrior 对比](docs/cmp_warrior.png)
+
+**道具 `items`**（放大 5×）
+
+![items 对比](docs/cmp_items.png)
 
 ---
 
@@ -210,7 +228,7 @@ bash demo/tools/prepare_demo.sh band-lite # 想换档
 ## 8. 常见问题
 
 **Q: 为什么不用 8px，看着更小？**
-8px 下 16×16 的瓦片细节基本糊成一团（对比图见 `docs/cmp_tiles.png` 第三行），人物五官丢失。除非你的手环内存真的非常紧张，否则 12px 是画质和体积的平衡点。
+8px 下人物五官会丢失、瓦片纹理糊成一团。除非手环内存真的非常紧张，否则 12px 是画质和体积的平衡点——想亲眼比较，改一行参数就行：`python3 tools/convert_sprites.py --preset band-lite` 然后打开 `preview.html` 切档。
 
 **Q: 能不能只转我用得到的几张图集？**
 可以。把 `src-assets/orig/` 里不需要的 PNG 删掉，或修改 `tools/convert_sprites.py` 的 `collect_tiles()` 扫目录逻辑加白名单，管线会自动只处理剩下的。
