@@ -110,7 +110,11 @@ pixel-dungeon-band/
 │   └── LICENSE-GPLv3.txt     ← 上游许可副本
 ├── tools/
 │   ├── convert_sprites.py    ← 精灵表转换管线 (Python + Pillow + numpy)
-│   └── convert_app_icon.py   ← 应用启动图标转换 (单张整图, 不做切片)
+│   ├── convert_app_icon.py   ← 应用启动图标转换 (单张整图, 不做切片)
+│   ├── audit_assets.py       ← 资产三级对账 (清单 md5 / 覆盖 / 形状 IoU)
+│   ├── build_sprite_grid.py  ← 从上游 Java 源码反查每张图的真实网格尺寸
+│   ├── sprite_grid.json      ← 反查结果: 30 张图不是 16x16
+│   └── make_compare.py       ← 生成 docs/cmp_*.png 对比图
 ├── output/                   ← 转换产出, 每档一个独立目录 (已入库, 开箱即用)
 │   ├── band/                 ★ 推荐档 12px  (82 PNG + 4 manifest + README)
 │   │   ├── README.md         ← 该档详细说明 (参数/适用/用法)
@@ -153,17 +157,28 @@ pixel-dungeon-band/
 | `res/drawable-*/ic_launcher.png` | 5 个 DPI 版本的应用启动图标（48/72/96/144/192） | ✅ 取 192 原图收录 `src-assets/orig-app-icon/`，已转 `output/app-icon/` |
 | `assets/*.mp3` | 音效 | ❌ 非美术资产，不在本仓库范围 |
 
-核对结果（脚本可复跑）：
+核对不是靠口头承诺，用脚本三级硬校验，随时可复跑：
 
-```
-源素材 82 张
-  [band      ] 输出 82 张 | 缺失 0 | 多余 0   ✓
-  [band-lite ] 输出 82 张 | 缺失 0 | 多余 0   ✓
-  [band-pro  ] 输出 82 张 | 缺失 0 | 多余 0   ✓
-三档中被整张判空丢弃的图集: 0
+```bash
+python3 tools/audit_assets.py --upstream /path/to/pixel-dungeon/assets
+# --upstream 指向原项目的 assets/ 目录; 不给则跳过 L1
+# 加 --preset band-lite / band-pro 查其它档, --iou-sample 0 全量比形状
 ```
 
-**空 tile 是正常现象，不是丢素材**。原图集留白很多（`surface` 128 格中 87 格空、`eye` 32 格中 20 格空），这些在 `coords` 里标 `null`、`tile()` 返回 `null`，渲染时跳过即可。
+| 级别 | 校验什么 | 当前结果 |
+|---|---|---|
+| **L1 清单** | `assets/*.png` 与 `src-assets/orig/*.png` 逐文件 md5 | 82/82 一致，无多余、无缺失 |
+| **L2 覆盖** | 源图按游戏内真实网格切出的非空 tile，是否都在输出里留下槽位 | 有效内容**零丢失** |
+| **L3 形状** | 抽样比对源 tile 与输出 tile 的 alpha 形状 IoU（网格错位会直接掉到 0） | 抽样 1257 格，平均 IoU **0.995** |
+
+```
+PASS  82 张图集: 清单一致 / 无空图集 / 有效内容零丢失 / 网格尺寸吻合
+WARN  3 项 (半透明边缘): banners, effects, piranha
+```
+
+> 历史坑：`shadow.png` 是 4×4 的九宫格贴图（`ShadowBox`，中心只有 2×2 实心），被"非空格至少要 6 个像素"的固定判据整张误杀了，三档各只出 81 张。现在判空阈值改为按 tile 面积自适应（`min(6, 面积/8)`），它回来了。这类"小图全被杀"的问题正是 L1/L2 要挡住的。
+
+**空 tile 是正常现象，不是丢素材**。原图集留白很多（`surface` 128 格中 87 格空、`eye` 32 格中 20 格空），这些在 `coords` 里标 `null`、`tile()` 返回 `null`，渲染时跳过即可。源 1999 个非空 tile 去重后打包成 1939 个槽位，差的 60 个是内容完全相同的帧被合并了。
 
 ### 量化保真度（全库实测）
 
