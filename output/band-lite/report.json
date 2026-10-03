@@ -2,7 +2,7 @@
   "preset": "band-lite",
   "tile": 8,
   "colors": 24,
-  "sourceTotalKB": 465.4,
-  "outputTotalKB": 46.4,
-  "compression": 10.02
+  "sourceTotalKB": 465.3,
+  "outputTotalKB": 46.8,
+  "compression": 9.95
 }

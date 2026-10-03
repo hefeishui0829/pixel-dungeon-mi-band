@@ -29,7 +29,7 @@ python3 tools/convert_sprites.py            # 生成 band + band-lite 两档
 
 | 项目 | 内容 |
 |---|---|
-| **精灵来源** | watabou/pixel-dungeon v1.9.1 (commit `ca458a2`), 82 张 PNG 精灵表, 16x16 像素网格的纯硬边像素画 |
+| **精灵来源** | watabou/pixel-dungeon v1.9.1 (commit `ca458a2`), 82 张 PNG 精灵表, 纯硬边像素画。**网格不是统一 16×16** —— 只有 8 张是, 其余 30 张各有网格 (`piranha` 12×16、`scorpio` 18×17、`rat` 16×15 …), 见 `tools/sprite_grid.json` |
 | **开源协议** | GPL-3.0 (`src-assets/LICENSE-GPLv3.txt`)。任何分发须保留版权与协议副本 |
 | **目标设备** | 小米 Vela JS 快应用 · 小米手环 9 / 10 (胶囊屏 192×490 / 212×520), 手环 8 Pro / 9 Pro (矩形屏 336×480) |
 | **开发文档** | <https://iot.mi.com/vela/quickapp/zh/guide/multi-screens/> (屏幕规格); <https://iot.mi.com/vela/quickapp/zh/guide/multi-screens/specs.html> (designWidth 适配规范) |
@@ -50,9 +50,9 @@ python3 tools/convert_sprites.py            # 生成 band + band-lite 两档
 
 | 档位 | tile 尺寸 | 调色板 | 磁盘总体积 | 压缩比 | 解码后 RGBA 显存 | 适用 |
 |---|---|---|---|---|---|---|
-| `band-lite` | 8px (原 1/2) | 24 色 / sheet | **46.4 KB** | **10.0×** | 545 KB (5.1×) | 手环 9 视野 24×61, 极限省体积 |
-| **`band`** ★ | 12px (原 3/4) | 48 色 / sheet | **84.4 KB** | **5.5×** | 1200 KB (2.3×) | 手环 9 视野 16×40, 推荐档 |
-| `band-pro` | 16px (原 1/1) | 64 色 / sheet | **97.6 KB** | **4.8×** | 2037 KB (1.4×) | 手环 8/9 Pro (336 宽) |
+| `band-lite` | 8px (原 1/2) | 24 色 / sheet | **46.8 KB** | **9.9×** | 527 KB (5.3×) | 手环 9 视野 24×61, 极限省体积 |
+| **`band`** ★ | 12px (原 3/4) | 48 色 / sheet | **84.4 KB** | **5.5×** | 1181 KB (2.3×) | 手环 9 视野 16×40, 推荐档 |
+| `band-pro` | 16px (原 1/1) | 64 色 / sheet | **97.6 KB** | **4.8×** | 1886 KB (1.5×) | 手环 8/9 Pro (336 宽) |
 | (源素材) | 16px | RGBA32 (7042 色) | **465.4 KB** | — | 2770 KB | — |
 
 **体积从哪省下来的**（对照实验：16px + 255 色，只做重打包/去重/空剔除，不降分辨率不减色 → 109.5 KB）：
@@ -237,9 +237,14 @@ bash demo/tools/prepare_demo.sh band-lite # 想换档
 
 ### 4.4 按原始序号取图（与中文文本库联动）
 
-`output/<档位>/sprites.json` 里每张图集的 `coords` 数组，**下标 = 原始素材 16×16 网格的
-tile 序号**（行主序，从 0 开始）；全透明的格子记为 `null`，内容相同的格子指向同一坐标。
+`output/<档位>/sprites.json` 里每张图集的 `coords` 数组，**下标 = 该图集在游戏内网格中的
+帧序号**（行主序，从 0 开始；网格尺寸见每张图集的 `sourceTile`，来源是 `tools/sprite_grid.json`）。
+全透明的格子记为 `null`，内容相同的格子指向同一坐标。
 所以只要知道"它是第几格"，就能直接查到压缩图集上的位置：
+
+> 注意：**不是**统一的 16×16 序号。游戏内 82 张精灵表里只有 8 张是标准 16×16，
+> 其余使用各自的网格（`piranha` 12×16、`scorpio` 18×17、`rat` 16×15 …）。
+> 早期版本错误地全部按 16×16 切，导致这些图集的动画帧整体错位，现已修正。
 
 ```js
 import { SHEETS } from './sprites.js'
@@ -261,9 +266,9 @@ python3 ../pixel-dungeon-text-zh/tools/lookup_sprite.py --band . --id Amulet
 
 | 步骤 | 实现 |
 |---|---|
-| ① 切片 | 按每张图集的 `tile 网格` (绝大多数 16x16, 例外在 `TILE_OVERRIDES`) 切成 tile 列表 |
+| ① 切片 | 按每张图集**在游戏内的真实网格**切 (`tools/sprite_grid.json`, 由源码 `TextureFilm(W,H)` 反查得来) |
 | ② alpha 预乘缩放 | `RGB *= A/255` → box 缩放 → `RGB = pre*255/A`, 避免透明黑边污染缩放结果 |
-| ③ alpha 二值化 | `α<阈值 → 0`, 其余 → 255, 恢复硬边像素画 + 去掉抗锯齿 |
+| ③ alpha 二值化 | 标准阈值 128; 若某格因此变全空但缩放前有内容, 退回低阈值 (32) 版本把它救回来 |
 | ④ 调色板量化 | median-cut (默认按 sheet 独立量化, 防止木色/暖色"吃掉"全局调色板) |
 | ⑤ 去空 + 内容去重 | 完全透明的 tile 不画; 内容相同的 tile 复用同一块图集区域 (同一角色多帧相同) |
 | ⑥ 重打包 | 列数自适应 (`max-width / tile`), 紧凑排列, 输出 PNG-8 (索引色 + tRNS) |

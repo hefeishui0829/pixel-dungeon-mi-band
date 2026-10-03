@@ -1,0 +1,407 @@
+{
+  "amulet.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "arcs1.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "arcs2.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "avatars.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "badges.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "banners.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "bat.png": {
+    "h": 15,
+    "note": "BatSprite",
+    "w": 15
+  },
+  "bee.png": {
+    "h": 16,
+    "note": "BeeSprite",
+    "w": 16
+  },
+  "blacksmith.png": {
+    "h": 16,
+    "note": "BlacksmithSprite",
+    "w": 13
+  },
+  "brute.png": {
+    "h": 16,
+    "note": "BruteSprite/ShieldedSprite",
+    "w": 12
+  },
+  "buffs.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "burning_fist.png": {
+    "h": 17,
+    "note": "BurningFistSprite",
+    "w": 24
+  },
+  "chrome.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "dashboard.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "demon.png": {
+    "h": 14,
+    "note": "ImpSprite",
+    "w": 12
+  },
+  "dm300.png": {
+    "h": 20,
+    "note": "DM300Sprite",
+    "w": 22
+  },
+  "effects.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "elemental.png": {
+    "h": 14,
+    "note": "ElementalSprite",
+    "w": 12
+  },
+  "exp_bar.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "eye.png": {
+    "h": 18,
+    "note": "EyeSprite",
+    "w": 16
+  },
+  "fireball.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "font15x.png": {
+    "h": 16,
+    "note": "font-1arg",
+    "w": 16
+  },
+  "font1x.png": {
+    "h": 16,
+    "note": "font-1arg",
+    "w": 16
+  },
+  "font25x.png": {
+    "h": 16,
+    "note": "font-1arg",
+    "w": 16
+  },
+  "font2x.png": {
+    "h": 16,
+    "note": "font-1arg",
+    "w": 16
+  },
+  "font3x.png": {
+    "h": 16,
+    "note": "font-1arg",
+    "w": 16
+  },
+  "ghost.png": {
+    "h": 15,
+    "note": "GhostSprite",
+    "w": 14
+  },
+  "gnoll.png": {
+    "h": 15,
+    "note": "GnollSprite",
+    "w": 12
+  },
+  "golem.png": {
+    "h": 16,
+    "note": "GolemSprite",
+    "w": 16
+  },
+  "goo.png": {
+    "h": 14,
+    "note": "GooSprite",
+    "w": 20
+  },
+  "hp_bar.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "icons.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "items.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "king.png": {
+    "h": 16,
+    "note": "KingSprite",
+    "w": 16
+  },
+  "large_buffs.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "larva.png": {
+    "h": 8,
+    "note": "LarvaSprite",
+    "w": 12
+  },
+  "locked_badge.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "mage.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "mimic.png": {
+    "h": 16,
+    "note": "MimicSprite",
+    "w": 16
+  },
+  "monk.png": {
+    "h": 14,
+    "note": "MonkSprite/SeniorSprite",
+    "w": 15
+  },
+  "pet.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "piranha.png": {
+    "h": 16,
+    "note": "PiranhaSprite",
+    "w": 12
+  },
+  "plants.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "ranger.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "rat.png": {
+    "h": 15,
+    "note": "AlbinoSprite/RatSprite",
+    "w": 16
+  },
+  "ratking.png": {
+    "h": 16,
+    "note": "RatKingSprite",
+    "w": 16
+  },
+  "rogue.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "rotting_fist.png": {
+    "h": 17,
+    "note": "RottingFistSprite",
+    "w": 24
+  },
+  "scorpio.png": {
+    "h": 17,
+    "note": "AcidicSprite/ScorpioSprite",
+    "w": 18
+  },
+  "shadow.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "shaman.png": {
+    "h": 15,
+    "note": "ShamanSprite",
+    "w": 12
+  },
+  "sheep.png": {
+    "h": 15,
+    "note": "SheepSprite",
+    "w": 16
+  },
+  "shopkeeper.png": {
+    "h": 14,
+    "note": "ShopkeeperSprite",
+    "w": 14
+  },
+  "skeleton.png": {
+    "h": 15,
+    "note": "SkeletonSprite",
+    "w": 12
+  },
+  "specks.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "spell_icons.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "spinner.png": {
+    "h": 16,
+    "note": "SpinnerSprite",
+    "w": 16
+  },
+  "statue.png": {
+    "h": 15,
+    "note": "StatueSprite",
+    "w": 12
+  },
+  "status_pane.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "succubus.png": {
+    "h": 15,
+    "note": "SuccubusSprite",
+    "w": 12
+  },
+  "surface.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "swarm.png": {
+    "h": 16,
+    "note": "SwarmSprite",
+    "w": 16
+  },
+  "tengu.png": {
+    "h": 16,
+    "note": "TenguSprite",
+    "w": 14
+  },
+  "thief.png": {
+    "h": 13,
+    "note": "BanditSprite/ThiefSprite",
+    "w": 12
+  },
+  "tiles0.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "tiles1.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "tiles2.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "tiles3.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "tiles4.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "toolbar.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "undead.png": {
+    "h": 16,
+    "note": "UndeadSprite",
+    "w": 12
+  },
+  "wandmaker.png": {
+    "h": 14,
+    "note": "WandmakerSprite",
+    "w": 12
+  },
+  "warlock.png": {
+    "h": 15,
+    "note": "WarlockSprite",
+    "w": 12
+  },
+  "warrior.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "water0.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "water1.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "water2.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "water3.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "water4.png": {
+    "h": 16,
+    "note": "standard",
+    "w": 16
+  },
+  "wraith.png": {
+    "h": 15,
+    "note": "WraithSprite",
+    "w": 14
+  },
+  "yog.png": {
+    "h": 19,
+    "note": "YogSprite",
+    "w": 20
+  }
+}

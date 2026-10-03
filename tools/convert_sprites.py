@@ -55,7 +55,15 @@ from PIL import Image
 
 DEFAULT_TILE = (16, 16)
 
-# 少数精灵表不是 16x16 网格, 这里显式声明 (宽, 高)
+# 精灵表网格配置: 一部分是显式声明的特效 / 水面 / 字体等;
+# 另一部分来自 tools/sprite_grid.json —— 由扫描 PD v1.9.1 源码里所有
+#   texture( Assets.X ); TextureFilm(texture, W, H)
+# 自动得到, 反映游戏内真实的网格尺寸。
+#
+# 历史教训: 之前只用显式 TILE_OVERRIDES, 导致 mob/npc 类图集按 16x16 错误切
+# (例如 piranha.png 实际是 12x16 网格, scorphio 是 18x17, rat 是 16x15 等等)。
+# 这会让所有非 16x16 图集在游戏内的动画帧位置整体错位, 是隐蔽但严重的 bug。
+
 TILE_OVERRIDES = {
     # 大尺寸图标 / 特效
     "large_buffs": (32, 32),
@@ -68,16 +76,44 @@ TILE_OVERRIDES = {
     # 异形小图
     "shadow": (4, 4),
     "specks": (8, 8),
-    "larva": (16, 8),
-    "exp_bar": (16, 1),
+    "larva": (12, 8),       # PiranhaSprite 后的 larva: TextureFilm(texture, 12, 8)
+    "exp_bar": (16, 1),     # 单行条: TextureFilm(texture, texture.width, 1)
     "hp_bar": (16, 4),
-    # 点阵字体
+    # 点阵字体 (按游戏内 TextureFilm(texture, 16) 单参, 即 16 像素列)
     "font1x": (8, 8),
     "font15x": (16, 16),
     "font2x": (16, 16),
     "font25x": (16, 32),
     "font3x": (32, 32),
 }
+
+# 启动时由 _load_sprite_grid() 把 sprite_grid.json 里的 30 张非 16x16
+# 图集网格注入 TILE_OVERRIDES, 覆盖上面默认值 (如水/字体之外的非 16x16)。
+
+def _load_sprite_grid():
+    """从 sprite_grid.json 加载游戏内网格尺寸到 TILE_OVERRIDES。
+
+    该 json 由 tools/build_sprite_grid.py 生成 (解析 Pixel Dungeon 源码里所有
+    `texture(Assets.X); TextureFilm(texture, W, H)` 调用)。如果缺失则跳过,
+    退化到脚本内的 TILE_OVERRIDES。"""
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(here, "sprite_grid.json")
+    if not os.path.exists(path):
+        return 0
+    with open(path, encoding="utf-8") as f:
+        grid = json.load(f)
+    n = 0
+    for fn, info in grid.items():
+        key = os.path.splitext(fn)[0]
+        w, h = info["w"], info["h"]
+        if (w, h) == DEFAULT_TILE:
+            continue   # 16x16 走默认
+        # 不要覆盖显式声明的特效/字体/水面
+        if key in TILE_OVERRIDES and TILE_OVERRIDES[key] != DEFAULT_TILE:
+            continue
+        TILE_OVERRIDES[key] = (w, h)
+        n += 1
+    return n
 
 # 手环档位预设: (目标 tile 边长, 调色板颜色数)
 # 颜色数权衡: 32 色对 7042 色压缩 220x, 偏色明显; 48~64 色基本保真, 体积只多 ~30%
@@ -122,11 +158,18 @@ RESAMPLES = {
 # 2. 图像处理原语
 # --------------------------------------------------------------------------- #
 
-def split_sheet(img: Image.Image, tw: int, th: int):
-    """把精灵表切成 tile 列表, 返回 [(row, col, Image RGBA), ...]"""
+def split_sheet(img: Image.Image, tw: int, th: int, name: str = ""):
+    """
+    把精灵表切成 tile 列表, 返回 [(row, col, Image RGBA), ...]
+
+    与游戏内 TextureFilm 行为一致: 列/行数用整除, 边缘不足一格的余量像素丢弃。
+    (例: bat.png 128x16 按 15x15 网格 -> 8 列 x 1 行, 右侧 8px 忽略。
+     早期版本要求整除, 在这类图集上直接抛错, 是把"假设"当成"约束"的典型 bug。)
+    """
     w, h = img.size
-    if w % tw or h % th:
-        raise ValueError(f"精灵表尺寸 {w}x{h} 不能被网格 {tw}x{th} 整除")
+    if w < tw or h < th:
+        raise ValueError(
+            f"精灵表{' ' + name if name else ''} 尺寸 {w}x{h} 小于网格 {tw}x{th}")
     out = []
     for r in range(h // th):
         for c in range(w // tw):
@@ -216,9 +259,18 @@ def collect_tiles(src_dir, target_tile, resample, alpha_threshold):
     """
     遍历源目录: 缩放 -> 二值化 -> 切 tile, 返回
         sheets: {name: {"tiles": [ndarray RGBA...], "meta": {...}}}
+
+    双阈值策略 (针对低 alpha 内容):
+      alpha < 阈值 像素判定: 标准阈值 (默认 128)
+      判空判定:    缩放后的"原 alpha >= 32" 像素数 >= 6 (过滤纯噪点)
+      若被判定为"非空"但标准 binarize 后变全透明 -> 改用低阈值 (max(32, threshold/4))
+                   的 binarize 版本, 救回真实内容 (典型例子: piranha.png 第 0/1 格
+                   alpha max=76, 是食人鱼水下半透明阴影, 旧管线会整个丢弃)。
     """
     sheets = OrderedDict()
     files = sorted(f for f in os.listdir(src_dir) if f.lower().endswith(".png"))
+    low_threshold = max(32, alpha_threshold // 4)
+
     for fn in files:
         key = os.path.splitext(fn)[0]
         src = Image.open(os.path.join(src_dir, fn))
@@ -236,19 +288,38 @@ def collect_tiles(src_dir, target_tile, resample, alpha_threshold):
         factor = min(1.0, dst_tw / stw, dst_th / sth)
 
         scaled = scale_sheet(img, factor, resample)
-        scaled = binarize_alpha(scaled, alpha_threshold)
+        # 双 binarize: 标准版保持硬边像素画, 低阈值版救回浅色残影
+        b_std = binarize_alpha(scaled, alpha_threshold)
+        b_low = binarize_alpha(scaled, low_threshold)
 
         # 缩放后实际网格尺寸 (可能因取整而微调)
-        gw, gh = scaled.size
+        gw, gh = b_std.size
         real_tw = max(1, int(round(stw * factor)))
         real_th = max(1, int(round(sth * factor)))
         cols, rows = gw // real_tw, gh // real_th
 
+        # 切 scaled (未 binarize) 用于"非空判据"
+        scaled_pre = np.asarray(scaled)
+
         tiles, metas = [], []
-        for r, c, tile in split_sheet(scaled, real_tw, real_th):
-            arr = np.asarray(tile)
+        for r, c, tile_std in split_sheet(b_std, real_tw, real_th, key):
+            i = r * cols + c
+            # 看原图 (binarize 之前) 这个格子的"真实内容"
+            sub = scaled_pre[r * real_th:(r + 1) * real_th,
+                             c * real_tw:(c + 1) * real_tw]
+            n_content = int((sub[..., 3] >= 32).sum())
+            empty = n_content < 6
+
+            if empty or np.asarray(tile_std)[..., 3].max() > 0:
+                arr = np.asarray(tile_std)
+            else:
+                # 标准 binarize 变全空, 用低阈值版救回
+                tile_low = b_low.crop((c * real_tw, r * real_th,
+                                       (c + 1) * real_tw, (r + 1) * real_th))
+                arr = np.asarray(tile_low)
             tiles.append(arr)
-            metas.append({"row": r, "col": c, "index": r * cols + c})
+            metas.append({"row": r, "col": c, "index": i,
+                          "empty": empty, "nContentPx": n_content})
 
         sheets[key] = {
             "tiles": tiles,
@@ -265,6 +336,9 @@ def collect_tiles(src_dir, target_tile, resample, alpha_threshold):
 def pack_sheet(tiles, metas, tw, th, max_width):
     """
     剔除全透明 tile + 内容去重, 然后紧凑排列。
+    "是否为空" 用 collect_tiles 阶段算好的 empty 标志 (基于缩放后原 alpha),
+    而不是 binarize 后的 alpha —— 因为低 alpha 残影被低阈值 binarize 救回后,
+    binarize 结果是全不透明, 不能用作"空"判据。
     返回 (canvas ndarray RGBA, placements, unique_count, dropped_count)
     """
     cols = max(1, max_width // tw)
@@ -274,7 +348,7 @@ def pack_sheet(tiles, metas, tw, th, max_width):
     dropped = 0
 
     for arr, meta in zip(tiles, metas):
-        if not (arr[..., 3] > 0).any():     # 全透明 -> 丢弃
+        if meta.get("empty"):
             placements.append(None)
             dropped += 1
             continue
@@ -368,10 +442,14 @@ def run_preset(src_dir, out_dir, preset, tile, colors, resample, alpha_threshold
 
         # tiles 用紧凑数组: coords[i] = [x,y] 或 null(空 tile), i 即原生 tile 索引
         # 用对象字典的话 2000+ tile 的 manifest 能到 147KB, 比贴图本身还大
+        #
+        # 全空图集 (canvas is None) 必须先判再取 shape —— 旧代码把判空写在取 shape
+        # 之后, 一旦某图集所有 tile 都被判空就会 AttributeError。这类图集在修正
+        # 网格后确实会出现 (例如 exp_bar/shadow 这种只有 1~2 格的异形图)。
         sheet_info = {
-            "image": f"{name}.png",
-            "imageWidth": int(canvas.shape[1]),
-            "imageHeight": int(canvas.shape[0]),
+            "image": f"{name}.png" if canvas is not None else None,
+            "imageWidth": int(canvas.shape[1]) if canvas is not None else 0,
+            "imageHeight": int(canvas.shape[0]) if canvas is not None else 0,
             "tileWidth": tw,
             "tileHeight": th,
             "sourceSize": s["srcSize"],
@@ -384,7 +462,6 @@ def run_preset(src_dir, out_dir, preset, tile, colors, resample, alpha_threshold
         }
 
         if canvas is None:
-            sheet_info["image"] = None
             index["sheets"][name] = sheet_info
             stat_rows.append((name, 0, 0, 0, 0, 0))
             continue
@@ -469,6 +546,9 @@ def run_preset(src_dir, out_dir, preset, tile, colors, resample, alpha_threshold
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     root = os.path.dirname(here)
+    n_grid = _load_sprite_grid()
+    if n_grid:
+        print(f"[grid] 从 sprite_grid.json 注入了 {n_grid} 张非 16x16 游戏网格")
     ap = argparse.ArgumentParser(description="Pixel Dungeon 素材 -> 小米手环快应用低精度贴图")
     ap.add_argument("--src", default=os.path.join(root, "src-assets", "orig"))
     ap.add_argument("--out", default=os.path.join(root, "output"))
