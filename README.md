@@ -6,6 +6,11 @@
 
 **一句话**: 把 watabou/pixel-dungeon 的 82 张 16px 精灵表（465 KB / RGBA32 / 7042 色）批量转成手环能吃得下的 PNG-8 图集——推荐档 12px tile，**84 KB、压缩 5.5×、显存占用降 2.3×**。
 
+**配套文本库**: 想让图旁边显示中文名/介绍/对话？用
+[pixel-dungeon-text-zh](https://github.com/hefeishui0829/pixel-dungeon-text-zh)——
+335 个类的中文文本（844 条，含物品/怪物/NPC 任务/五章剧情/死因），
+每条都带 (图集名, tile 序号)，与本仓库 `sprites.json` 的 `coords[tile]` **直接对应，无需换算**。
+
 ### 30 秒速览
 
 ```bash
@@ -229,6 +234,26 @@ bash demo/tools/prepare_demo.sh band-lite # 想换档
 
 然后在 AIoT-IDE 里打开 `demo/` 工程直接打包运行 (`designWidth: 192`, 屏自动适配)。
 更多设备请把 manifest.json 的 `config.designWidth` 改为目标屏宽 (212 / 336)。
+
+### 4.4 按原始序号取图（与中文文本库联动）
+
+`output/<档位>/sprites.json` 里每张图集的 `coords` 数组，**下标 = 原始素材 16×16 网格的
+tile 序号**（行主序，从 0 开始）；全透明的格子记为 `null`，内容相同的格子指向同一坐标。
+所以只要知道"它是第几格"，就能直接查到压缩图集上的位置：
+
+```js
+import { SHEETS } from './sprites.js'
+const xy = SHEETS.items.c[87]     // 第 87 格 -> [x, y]
+```
+
+配套仓库 [pixel-dungeon-text-zh](https://github.com/hefeishui0829/pixel-dungeon-text-zh)
+已经把 173 个游戏对象（物品 / 怪物 / 植物 / 徽章）的中文名、中文介绍和原始 tile 序号整理好了，
+两边用同一套寻址，可以直接拼出"图 + 中文说明"：
+
+```bash
+python3 ../pixel-dungeon-text-zh/tools/lookup_sprite.py --band . --id Amulet
+# -> band-lite / band / band-pro 三档各自的 {image, x, y, tileWidth, tileHeight}
+```
 
 ---
 
