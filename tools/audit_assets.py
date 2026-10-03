@@ -111,6 +111,7 @@ def main():
         target_tile = int(json.load(open(rp_path, encoding="utf-8")).get("tile", 12))
 
     fails, warns = [], []
+    warn_details = []
 
     # ------------------------------------------------------------------ L1
     print("=" * 80)
@@ -211,6 +212,18 @@ def main():
         elif low or miss_noise:
             verdict = WARN
             warns.append(key)
+            reason_bits = []
+            if miss_noise:
+                reason_bits.append(
+                    "源图 %d 个 tile 含缩放后残留/半透明边缘, 被判为噪点剔除" % miss_noise)
+            if low:
+                reason_bits.append(
+                    "%d 个抽样 tile 形状 IoU<0.6, 半透明边缘二值化后形状收缩" % low)
+            warn_details.append({
+                "sheet": key, "miss_noise": miss_noise, "low_iou": low,
+                "avg_iou": round(avg, 3),
+                "reason": "; ".join(reason_bits) or "半透明边缘在 PNG-8+tRNS 二值化中受损",
+            })
         else:
             verdict = OK
         print(f"{key:<15}{os.path.getsize(src)/1024:>7.1f}{f'{tw}x{th}':>9}"
@@ -234,7 +247,77 @@ def main():
             + ", ".join(warns[:6]) + (" ..." if len(warns) > 6 else "") if warns else ""
     print(f"PASS  {len(sheets)} 张图集: 清单一致 / 无空图集 / 有效内容零丢失 / "
           f"网格尺寸吻合{extra}")
+
+    # -------------------------------------------------- 争议资产固化(图片侧)
+    if warn_details:
+        write_asset_disputes(warn_details)
     return 0
+
+
+def write_asset_disputes(details):
+    """把 WARN 项(半透明边缘在 PNG-8+tRNS 二值化中受损)固化为带注释的争议清单,
+    供构建者按实际项目决定是否保留有损或切换带 alpha 的方案。"""
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    doc_dir = os.path.join(ROOT, "docs")
+    data_dir = os.path.join(ROOT, "data")
+    os.makedirs(doc_dir, exist_ok=True)
+    os.makedirs(data_dir, exist_ok=True)
+
+    out_path = os.path.join(data_dir, "asset-disputes.json")
+    merged = {}
+    if os.path.exists(out_path):                      # 多档位运行累加, 避免互相覆盖
+        try:
+            prev = json.load(open(out_path, encoding="utf-8"))
+            for e in prev.get("entries", []):
+                merged[e["sheet"]] = e
+        except Exception:
+            pass
+    for e in details:
+        s = e["sheet"]
+        if s in merged:
+            m = merged[s]
+            m["miss_noise"] = max(m["miss_noise"], e["miss_noise"])
+            m["low_iou"] = max(m["low_iou"], e["low_iou"])
+            if e["avg_iou"] < m["avg_iou"]:
+                m["avg_iou"] = e["avg_iou"]
+            if e["reason"] not in m["reason"]:
+                m["reason"] = m["reason"] + "; " + e["reason"]
+        else:
+            merged[s] = dict(e)
+    details = list(merged.values())
+
+    out = {
+        "_meta": {
+            "purpose": (
+                "收录贴图转换中'有损但非缺失'的图集: 其半透明边缘在 PNG-8+tRNS "
+                "导出(仅支持 0/255 两种 alpha)时被二值化抹成实色或全透明, 导致形状收缩。"
+                "这属于格式硬约束的有损, 不是切图错误或丢素材。"),
+            "build_note": (
+                "构建时二选一: (A) 接受有损 —— 体积最小, 适合手环小屏; "
+                "(B) 改用带 alpha 的方案(如 RGBA PNG 或索引 PNG 配 tRNS 渐变), "
+                "保留半透明但体积增大。以你的实际构建项目为准决定。"),
+            "generated_by": "tools/audit_assets.py",
+        },
+        "entries": details,
+    }
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=2)
+
+    lines = ["# 争议资产清单（图片侧：半透明边缘有损）", "",
+             "> 由 `tools/audit_assets.py` 在跑出 WARN 时自动生成。", "",
+             "> **这些不是缺失也不是切错**，而是 PNG-8+tRNS 导出只支持 0/255 两种 "
+             "alpha，原图中 1–127 的半透明边缘被二值化抹掉，造成形状轻微收缩。", "",
+             "> **构建时请二选一**：",
+             "> - (A) 接受有损：体积最小，适合手环小屏；",
+             "> - (B) 改用带 alpha 的方案（RGBA PNG 或索引 PNG + tRNS 渐变），保留半透明但体积增大。",
+             "> 以你的实际构建项目为准决定。", "",
+             "| 图集 | 被剔除残影像素 tile | 低 IoU(<0.6) tile | 平均 IoU | 说明 |",
+             "|---|---|---|---|---|"]
+    for e in details:
+        lines.append("| `%s` | %d | %d | %.3f | %s |" % (
+            e["sheet"], e["miss_noise"], e["low_iou"], e["avg_iou"], e["reason"]))
+    with open(os.path.join(doc_dir, "asset-disputes.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 if __name__ == "__main__":

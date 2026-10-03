@@ -8,8 +8,10 @@
 
 **配套文本库**: 想让图旁边显示中文名/介绍/对话？用
 [pixel-dungeon-text-zh](https://github.com/hefeishui0829/pixel-dungeon-text-zh)——
-335 个类的中文文本（844 条，含物品/怪物/NPC 任务/五章剧情/死因），
+335 个类的中文文本（908 条，含物品/怪物/NPC 任务/五章剧情/死因），
 每条都带 (图集名, tile 序号)，与本仓库 `sprites.json` 的 `coords[tile]` **直接对应，无需换算**。
+其中与社区中文分支（Shattered 官方简体中文）存在分歧的 181 条已单独收进该库的
+`data/zh/disputed.json`，由构建者按实际项目取舍。
 
 ### 30 秒速览
 
@@ -175,6 +177,8 @@ python3 tools/audit_assets.py --upstream /path/to/pixel-dungeon/assets
 PASS  82 张图集: 清单一致 / 无空图集 / 有效内容零丢失 / 网格尺寸吻合
 WARN  3 项 (半透明边缘): banners, effects, piranha
 ```
+
+> **争议资产已单独收录**：三档跑审计后，半透明边缘受损的图集（`banners` / `effects` / `piranha`）被固化进 [`data/asset-disputes.json`](data/asset-disputes.json) 与 [`docs/asset-disputes.md`](docs/asset-disputes.md)，每条带 `build_note` 说明**构建时如何取舍**（接受有损 vs 改用带 alpha 方案）。重跑 `audit_assets.py` 会自动刷新这份清单。
 
 > 历史坑：`shadow.png` 是 4×4 的九宫格贴图（`ShadowBox`，中心只有 2×2 实心），被"非空格至少要 6 个像素"的固定判据整张误杀了，三档各只出 81 张。现在判空阈值改为按 tile 面积自适应（`min(6, 面积/8)`），它回来了。这类"小图全被杀"的问题正是 L1/L2 要挡住的。
 

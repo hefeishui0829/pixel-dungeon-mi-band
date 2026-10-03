@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "purpose": "收录贴图转换中'有损但非缺失'的图集: 其半透明边缘在 PNG-8+tRNS 导出(仅支持 0/255 两种 alpha)时被二值化抹成实色或全透明, 导致形状收缩。这属于格式硬约束的有损, 不是切图错误或丢素材。",
+    "build_note": "构建时二选一: (A) 接受有损 —— 体积最小, 适合手环小屏; (B) 改用带 alpha 的方案(如 RGBA PNG 或索引 PNG 配 tRNS 渐变), 保留半透明但体积增大。以你的实际构建项目为准决定。",
+    "generated_by": "tools/audit_assets.py"
+  },
+  "entries": [
+    {
+      "sheet": "banners",
+      "miss_noise": 0,
+      "low_iou": 2,
+      "avg_iou": 0.931,
+      "reason": "2 个抽样 tile 形状 IoU<0.6, 半透明边缘二值化后形状收缩"
+    },
+    {
+      "sheet": "effects",
+      "miss_noise": 0,
+      "low_iou": 1,
+      "avg_iou": 0.667,
+      "reason": "1 个抽样 tile 形状 IoU<0.6, 半透明边缘二值化后形状收缩"
+    },
+    {
+      "sheet": "piranha",
+      "miss_noise": 0,
+      "low_iou": 3,
+      "avg_iou": 0.8,
+      "reason": "3 个抽样 tile 形状 IoU<0.6, 半透明边缘二值化后形状收缩"
+    }
+  ]
+}
