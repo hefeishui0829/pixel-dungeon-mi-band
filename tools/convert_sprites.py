@@ -308,7 +308,11 @@ def collect_tiles(src_dir, target_tile, resample, alpha_threshold):
             sub = scaled_pre[r * real_th:(r + 1) * real_th,
                              c * real_tw:(c + 1) * real_tw]
             n_content = int((sub[..., 3] >= 32).sum())
-            empty = n_content < 6
+            # 判空阈值按 tile 面积自适应: 常规 tile 仍是 6 像素 (滤缩放噪点),
+            # 但极小 tile (如 4x4 的 shadow.png 九宫格, 只有 2x2=4 个实心像素)
+            # 会被固定阈值 6 误杀, 这里放宽到面积的 1/8。
+            min_px = max(1, min(6, (real_tw * real_th) // 8))
+            empty = n_content < min_px
 
             if empty or np.asarray(tile_std)[..., 3].max() > 0:
                 arr = np.asarray(tile_std)
